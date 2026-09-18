@@ -50,6 +50,14 @@ function getEmbeddingPipeline(): Promise<FeatureExtractionPipeline> {
   return (globalThis.__anahtarEmbeddingPipeline ??= pipeline(
     "feature-extraction",
     "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
+    // `dtype` belirtilmezse, Node.js'in native `onnxruntime-node` backend'i
+    // (WASM'ın aksine) tam hassasiyetli (fp32) ağırlıkları yükler — bu,
+    // Vercel Hobby'nin sabit 2GB bellek sınırını aşıp fonksiyonun OOM ile
+    // öldürülmesine (SIGKILL) yol açtı. Quantized (int8) ağırlıklar aynı
+    // modelin standart, yaygın kullanılan bir varyantı — anlamsal arama
+    // kalitesinde gözle görülür bir fark yaratmadan bellek kullanımını
+    // ~4 kat azaltır.
+    { dtype: "int8" },
   ));
 }
 
