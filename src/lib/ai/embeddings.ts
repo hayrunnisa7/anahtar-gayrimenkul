@@ -1,5 +1,18 @@
-import { pipeline, type FeatureExtractionPipeline } from "@huggingface/transformers";
+import { pipeline, env, type FeatureExtractionPipeline } from "@huggingface/transformers";
 import type { PrismaClient } from "@prisma/client";
+import os from "node:os";
+import path from "node:path";
+
+// `@huggingface/transformers`'ın varsayılan dosya önbelleği
+// (`env.cacheDir`), paketin kendi `node_modules` dizini altındaki
+// `./.cache`'e yazar. Vercel'in serverless fonksiyon dosya sistemi
+// salt-okunurdur (yalnızca `/tmp` yazılabilir) — varsayılan yolla model
+// indirme her seferinde ENOENT ile patlar ve `search.ts`'teki try/catch
+// bunu SESSİZCE yutup anahtar-kelime filtresine düşer, yani anlamsal arama
+// hiç çalışmadan "başarılı" görünür. Önbellek dizinini açıkça yazılabilir
+// bir konuma (`os.tmpdir()`, hem yerelde hem Vercel'de her zaman yazılabilir)
+// yönlendirmek bu sessiz bozulmayı önler.
+env.cacheDir = path.join(os.tmpdir(), "hf-cache");
 
 // NOT: Kasıtlı olarak "server-only" işaretlenmedi — bu modül hem uygulama
 // içinden (lib/data/listings.ts üzerinden, zaten yalnızca Server
