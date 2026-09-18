@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
 import { UsageStatus as PrismaUsageStatus, type Listing as DbListing, type Prisma } from "@prisma/client";
-import { generateAndSaveListingEmbedding } from "@/lib/ai/embeddings";
 import { slugify } from "@/lib/utils/slugify";
 import type {
   Listing,
@@ -92,9 +91,16 @@ const publicWhere = { publishStatus: "aktif" as const };
  * zenginleştirme adımıdır — başarısız olursa (ör. model ilk kez
  * yükleniyorsa geçici bir hata) ilan oluşturma/güncelleme işlemini
  * BOZMAMALI, yalnızca uyarı olarak loglanır.
+ *
+ * `@/lib/ai/embeddings` (ve onun native onnxruntime bağımlılığı) burada
+ * BİLEREK dinamik `import()` ile yükleniyor — statik bir import, bu
+ * dosyayı (neredeyse tüm route'ların ortak veri katmanını) kullanan HER
+ * sayfanın sunucu paketine gereksiz yere ağır bir native binary sürükler.
+ * Yalnızca ilan oluşturma/güncelleme çağrıldığında gerçekten yükleniyor.
  */
 async function safelyEmbedListing(row: DbListing): Promise<void> {
   try {
+    const { generateAndSaveListingEmbedding } = await import("@/lib/ai/embeddings");
     await generateAndSaveListingEmbedding(prisma, row);
   } catch (err) {
     console.warn(`İlan embedding'i üretilemedi (id: ${row.id}):`, err);

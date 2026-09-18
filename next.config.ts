@@ -22,8 +22,19 @@ const nextConfig: NextConfig = {
   // yakalayamıyor — bu yüzden Vercel'in serverless fonksiyon paketine hiç
   // dahil edilmiyordu. Bu, native/runtime dosyalar için Next.js'in kendi
   // dokümantasyonunda önerilen standart çözüm.
+  //
+  // ÖNEMLİ: `/*` anahtarı TÜM route'ları hedefler (Next.js dokümantasyonunda
+  // "global key" olarak tanımlı) — bu yüzden yalnızca gerçekten embedding
+  // pipeline'ını çalıştıran 3 route burada açıkça listeleniyor. Geniş bir
+  // `/*` kullanmak, native binary'yi ihtiyacı olmayan ~35 route'a da
+  // dahil ederek Vercel'in normalde tek fonksiyonda birleştirdiği route'ları
+  // ayrı fonksiyonlara bölmesine ve Hobby planın 12 Serverless Function
+  // sınırının aşılmasına yol açtı (doğrulandı: geniş desenle deploy
+  // "No more than 12 Serverless Functions" hatasıyla başarısız oldu).
   outputFileTracingIncludes: {
-    "/*": ["node_modules/onnxruntime-node/**/*"],
+    "/ai-arama": ["node_modules/onnxruntime-node/**/*"],
+    "/api/danisman/create-listing": ["node_modules/onnxruntime-node/**/*"],
+    "/api/danisman/update-listing": ["node_modules/onnxruntime-node/**/*"],
   },
 };
 
