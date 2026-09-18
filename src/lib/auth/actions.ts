@@ -26,6 +26,7 @@ import {
 } from "@/lib/auth/rate-limit";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { generateCsrfToken } from "@/lib/auth/csrf";
+import { slugify } from "@/lib/utils/slugify";
 import type { AuthenticatedRole } from "@/types/user";
 
 export interface AuthFormState {
@@ -132,6 +133,30 @@ export async function registerAction(
   const hashedPassword = await argon2.hash(password);
 
   await prisma.user.create({ data: { id, name, email, password: hashedPassword, role } });
+
+  // Danışman rolündeki her User'ın karşılığında bir Advisor satırı olmalı —
+  // Subscription.advisorId ve Listing.advisorId, User.id'ye değil
+  // Advisor.id'ye referans veriyor (bkz. schema.prisma). Bu adım eksikse
+  // yeni kayıt olan danışmanlar için paket satın alma/ilan oluşturma
+  // "foreign key constraint violated" hatasıyla çöküyordu (id'ler eşit
+  // tutularak User<->Advisor eşleşmesi sağlanıyor, schema'daki mevcut
+  // "adv-1 gibi" konvansiyonunun aynısı).
+  if (role === "danisman") {
+    await prisma.advisor.create({
+      data: {
+        id,
+        slug: `${slugify(name)}-${id.slice(-6)}`,
+        name,
+        title: "Emlak Danışmanı",
+        phone: "",
+        whatsapp: "",
+        email,
+        bio: "",
+        regions: [],
+      },
+    });
+  }
+
   await setSessionCookie({ id, name, email, role, csrf: generateCsrfToken() });
   redirect(roleHome(role));
 }
