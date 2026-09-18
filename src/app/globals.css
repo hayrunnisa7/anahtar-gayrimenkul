@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffdf9;
+  --foreground: #16241d;
+
+  /* Ana renk: koyu yeşil */
+  --color-brand-50: #eef5f1;
+  --color-brand-100: #d6e8dc;
+  --color-brand-200: #aed0b8;
+  --color-brand-300: #7fb393;
+  --color-brand-400: #4c8f6c;
+  --color-brand-500: #2e6e4e;
+  --color-brand-600: #1f5a3f;
+  --color-brand-700: #184b34;
+  --color-brand-800: #123524;
+  --color-brand-900: #0b2318;
+  --color-brand-950: #071811;
+
+  /* Yardımcı renk: krem */
+  --color-cream-50: #fffdf9;
+  --color-cream-100: #fbf6ea;
+  --color-cream-200: #f5edd6;
+  --color-cream-300: #eee1bc;
+  --color-cream-400: #e4d29c;
+  --color-cream-500: #d8c078;
+
+  /* Vurgu: kısıtlı kullanım için soft altın */
+  --color-gold-400: #c7a253;
+  --color-gold-500: #ad8740;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-200: var(--color-brand-200);
+  --color-brand-300: var(--color-brand-300);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-500: var(--color-brand-500);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-700: var(--color-brand-700);
+  --color-brand-800: var(--color-brand-800);
+  --color-brand-900: var(--color-brand-900);
+  --color-brand-950: var(--color-brand-950);
+
+  --color-cream-50: var(--color-cream-50);
+  --color-cream-100: var(--color-cream-100);
+  --color-cream-200: var(--color-cream-200);
+  --color-cream-300: var(--color-cream-300);
+  --color-cream-400: var(--color-cream-400);
+  --color-cream-500: var(--color-cream-500);
+
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}

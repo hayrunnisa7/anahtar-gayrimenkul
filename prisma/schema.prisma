@@ -1,0 +1,235 @@
+// Anahtar Gayrimenkul — Prisma şeması
+//
+// Mevcut `src/types/*.ts` içindeki arayüzlerden bire bir çıkarılmıştır.
+// Bu şema, mock veri katmanının (`src/lib/mock/*.ts`) yerini alacak gerçek
+// PostgreSQL tablolarını tanımlar. Şema oluşturulduktan sonra bile
+// `src/lib/data/*.ts` fonksiyonları ayrı bir onaylı adımda değiştirilecek —
+// bu dosyanın var olması tek başına mock sistemi devre dışı bırakmaz.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  uye
+  danisman
+  admin
+}
+
+enum ListingStatus {
+  satilik
+  kiralik
+}
+
+enum PropertyCategory {
+  konut
+  arsa
+  isyeri
+}
+
+enum UsageStatus {
+  bos
+  kiracili
+  mulkSahibiOturuyor @map("mulk-sahibi-oturuyor")
+}
+
+enum ListingPublishStatus {
+  aktif
+  beklemede
+  pasif
+}
+
+enum SubscriptionStatus {
+  aktif
+  iptal
+}
+
+/// Demo/mock kullanıcı hesapları (üye, danışman, admin).
+/// NOT: `password` alanı 14.2'de (Auth Sertleştirme) hash'e çevrilecek —
+/// şema bu adımı beklemeden hazırlanabilir.
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  favorites Favorite[]
+
+  @@map("users")
+}
+
+/// Danışman profili — bir User hesabıyla eşleşebilir (adv-1 gibi) ya da
+/// yalnızca dizin amaçlı, girişi olmayan bir profil olabilir.
+model Advisor {
+  id       String   @id @default(cuid())
+  slug     String   @unique
+  name     String
+  title    String
+  phone    String
+  whatsapp String
+  email    String   @unique
+  bio      String
+  regions  String[]
+
+  listings      Listing[]
+  subscriptions Subscription[]
+
+  @@map("advisors")
+}
+
+model Region {
+  id          String @id @default(cuid())
+  slug        String @unique
+  name        String
+  city        String
+  description String
+
+  listings Listing[]
+
+  @@map("regions")
+}
+
+model Listing {
+  id              String               @id @default(cuid())
+  listingNo       String               @unique
+  slug            String               @unique
+  title           String
+  description     String
+  status          ListingStatus
+  category        PropertyCategory
+  subCategory     String
+  price           Int
+  currency        String               @default("TRY")
+  area            Int
+  netArea         Int?
+  roomCount       String?
+  /// "4/8" gibi "bulunduğu kat/toplam kat" biçiminde.
+  floor           String?
+  buildingAge     Int?
+  bathroomCount   Int?
+  balconyCount    Int?
+  heating         String?
+  isFurnished     Boolean?
+  titleDeedStatus String?
+  loanEligible    Boolean?
+  hasParking      Boolean?
+  inComplex       Boolean?
+  dues            Int?
+  facade          String[]
+  usageStatus     UsageStatus?
+  city            String
+  district        String
+  neighborhood    String
+  address         String
+  photoCount      Int                  @default(0)
+  isFeatured      Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  features        String[]
+  publishStatus   ListingPublishStatus @default(beklemede)
+  viewCount       Int                  @default(0)
+
+  advisorId String
+  advisor   Advisor @relation(fields: [advisorId], references: [id])
+
+  regionId String?
+  region   Region? @relation(fields: [regionId], references: [id])
+
+  favorites Favorite[]
+
+  /// Yerel embedding modeliyle (title+description+features metninden)
+  /// üretilen 384 boyutlu anlamsal vektör. Prisma pgvector'ü native
+  /// desteklemediği için `Unsupported` olarak tanımlanır — tüm okuma/yazma
+  /// işlemleri ham SQL ile yapılır (bkz. `lib/ai/embeddings.ts`). pgvector
+  /// eklentisi şema dosyasından değil, migration içindeki ham SQL ile
+  /// açılır (bilinen bir Prisma preview-feature drift hatasından kaçınmak
+  /// için — detay için migration dosyasındaki yoruma bakın).
+  embedding Unsupported("vector(384)")?
+
+  @@map("listings")
+}
+
+model SaasPackage {
+  /// Sabit katalog kimlikleri (ör. "pkg-baslangic") — otomatik üretilmez.
+  id           String   @id
+  name         String
+  priceMonthly Int
+  description  String
+  features     String[]
+  /// null = "sınırsız" (TS tarafındaki `number | "sinirsiz"` union'ının karşılığı).
+  listingLimit Int?
+  highlighted  Boolean  @default(false)
+  cta          String
+
+  subscriptions Subscription[]
+
+  @@map("saas_packages")
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  buyerName   String
+  buyerEmail  String
+  amount      Int
+  purchasedAt DateTime           @default(now())
+  status      SubscriptionStatus @default(aktif)
+
+  packageId String
+  package   SaasPackage @relation(fields: [packageId], references: [id])
+
+  advisorId String
+  advisor   Advisor @relation(fields: [advisorId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String
+  /// Yazının tam gövdesi, her öğe bir paragraf.
+  content     String[]
+  author      String
+  publishedAt DateTime
+  readMinutes Int
+  category    String
+
+  @@map("blog_posts")
+}
+
+/// Bir kullanıcının favorilediği ilanlar (mevcut `Record<string, string[]>`
+/// mock deposunun yerini alacak birleşim tablosu).
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("favorites")
+}
+
+/// Login rate limiting için kompakt sayaç tablosu. `key` "email:<e-posta>"
+/// veya "ip:<ip>" biçiminde olabilir — aynı mantık her iki tür kimlik için
+/// de kullanılır. Bir satır, sabit bir zaman penceresi içindeki başarısız
+/// deneme sayısını ve (eşik aşıldıysa) kilidin ne zaman biteceğini tutar.
+model LoginThrottle {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  failedCount Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+
+  @@map("login_throttles")
+}
